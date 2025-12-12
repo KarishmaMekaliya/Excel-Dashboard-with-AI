@@ -1,0 +1,100 @@
+Option Explicit
+
+Sub CreateAdidasDashboardCharts()
+
+    Dim wb As Workbook
+    Dim wsDash As Worksheet
+    Dim wsPivots As Worksheet
+    
+    Dim ptSalesTrend As PivotTable
+    Dim ptUnitsTrend As PivotTable
+    Dim ptRegionSales As PivotTable
+    Dim ptProductSales As PivotTable
+    Dim ptProductProfit As PivotTable
+    Dim ptRetailerSales As PivotTable
+    Dim ptSalesMethod As PivotTable
+    
+    Dim chartArr(1 To 7) As PivotTable
+    Dim shapeArr(1 To 7) As Shape
+    
+    Dim i As Long
+    Dim co As ChartObject
+    
+    Set wb = ThisWorkbook
+    Set wsDash = wb.Worksheets("Sheet1")
+    Set wsPivots = wb.Worksheets("Adidas_Pivots")
+    
+    ' ---- GET PIVOT TABLES ----
+    Set ptSalesTrend = wsPivots.PivotTables("ptSalesTrend")
+    Set ptUnitsTrend = wsPivots.PivotTables("ptUnitsTrend")
+    Set ptRegionSales = wsPivots.PivotTables("ptRegionSales")
+    Set ptProductSales = wsPivots.PivotTables("ptProductSales")
+    Set ptProductProfit = wsPivots.PivotTables("ptProductProfit")
+    Set ptRetailerSales = wsPivots.PivotTables("ptRetailerSales")
+    Set ptSalesMethod = wsPivots.PivotTables("ptSalesMethod")
+    
+    ' ---- ORDER OF CHARTS ----
+    ' 1 = Sales Trend (Line)
+    ' 2 = Units Trend (Line)
+    ' 3 = Sales by Region (Column)
+    ' 4 = Sales by Category (DOUGHNUT)
+    ' 5 = Profit by Category (Column)
+    ' 6 = Sales by Retailer (Column)
+    ' 7 = Sales Method (Doughnut)
+    
+    Set chartArr(1) = ptSalesTrend
+    Set chartArr(2) = ptUnitsTrend
+    Set chartArr(3) = ptRegionSales
+    Set chartArr(4) = ptProductSales
+    Set chartArr(5) = ptProductProfit
+    Set chartArr(6) = ptRetailerSales
+    Set chartArr(7) = ptSalesMethod
+    
+    ' ---- GET SHAPE PLACEHOLDERS CH_1 to CH_7 ----
+    For i = 1 To 7
+        On Error Resume Next
+        Set shapeArr(i) = wsDash.Shapes("CH_" & i)
+        On Error GoTo 0
+        
+        If shapeArr(i) Is Nothing Then
+            MsgBox "Shape not found: CH_" & i, vbCritical
+            Exit Sub
+        End If
+    Next i
+    
+    ' ---- DELETE OLD CHARTS ----
+    For i = wsDash.ChartObjects.Count To 1 Step -1
+        wsDash.ChartObjects(i).Delete
+    Next i
+    
+    ' ---- CREATE CHARTS ----
+    For i = 1 To 7
+    
+        Set co = wsDash.ChartObjects.Add( _
+            Left:=shapeArr(i).Left, _
+            Top:=shapeArr(i).Top, _
+            Width:=shapeArr(i).Width, _
+            Height:=shapeArr(i).Height)
+        
+        co.Name = "Chart_" & i
+        co.Chart.SetSourceData chartArr(i).TableRange1
+        
+        ' ---- APPLY CORRECT CHART TYPE ----
+        Select Case i
+        
+            Case 1, 2 ' Sales Trend & Units Trend
+                co.Chart.ChartType = xlLine
+            
+            Case 4, 7 ' Category & Sales Method
+                co.Chart.ChartType = xlDoughnut
+            
+            Case Else ' Region, Profit, Retailer
+                co.Chart.ChartType = xlColumnClustered
+        
+        End Select
+        
+    Next i
+    
+    MsgBox "Dashboard charts updated successfully!", vbInformation
+
+End Sub
